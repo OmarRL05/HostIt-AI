@@ -23,8 +23,8 @@ def register():
         email=data['email'],
         full_name=data.get('full_name', 'Annonymus'),
         password_hash=generate_password_hash(data['password']), 
-        address=data.get('address', ''),
-        payment_info=data.get('payment_info', {}) 
+        shipping_address=data.get('address', ''),
+        payment_method_mock=data.get('payment_info', {}) 
     )
 
     try:

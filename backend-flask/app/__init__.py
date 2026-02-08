@@ -1,3 +1,4 @@
+from re import A
 from flask import Flask
 from flask_cors import CORS
 from app.config import Config
@@ -19,5 +20,8 @@ def create_app(config_class=Config):
     # Register blueprints (routes)
     from .routes.base import base_bp
     app.register_blueprint(base_bp)
+
+    from .routes.auth import auth_bp
+    app.register_blueprint(auth_bp)
 
     return app

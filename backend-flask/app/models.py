@@ -8,6 +8,7 @@ class User(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
     full_name = db.Column(db.String(100), nullable=True)
     shipping_address = db.Column(db.Text, nullable=True) 
     payment_method_mock = db.Column(JSON, nullable=True)
@@ -21,6 +22,7 @@ class Conversation(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    title = db.Column(db.String(100), default="New Chat")
     status = db.Column(db.String(20), default='open')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     messages = db.relationship('ChatMessage', backref='conversation', lazy=True)
@@ -82,6 +84,10 @@ class Order(db.Model):
     checkout_status = db.Column(db.String(50), default='simulated_pending')
     
     pdf_receipt_url = db.Column(db.String(255), nullable=True)
+
+    ai_summary = db.Column(db.Text, nullable=True) 
+    estimated_delivery_global = db.Column(db.String(100), nullable=True)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     items = db.relationship('OrderItem', backref='order', lazy=True)

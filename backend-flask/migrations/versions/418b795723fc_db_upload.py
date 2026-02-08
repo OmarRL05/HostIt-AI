@@ -1,8 +1,8 @@
-"""Initial migration: users, orders, chats
+"""DB UPLOAD
 
-Revision ID: 978f52813bcf
+Revision ID: 418b795723fc
 Revises: 
-Create Date: 2026-02-07 19:28:15.157724
+Create Date: 2026-02-07 23:32:16.840614
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '978f52813bcf'
+revision = '418b795723fc'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,6 +21,7 @@ def upgrade():
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('email', sa.String(length=120), nullable=False),
+    sa.Column('password_hash', sa.String(length=256), nullable=False),
     sa.Column('full_name', sa.String(length=100), nullable=True),
     sa.Column('shipping_address', sa.Text(), nullable=True),
     sa.Column('payment_method_mock', postgresql.JSON(astext_type=sa.Text()), nullable=True),
@@ -31,6 +32,7 @@ def upgrade():
     op.create_table('conversations',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('title', sa.String(length=100), nullable=True),
     sa.Column('status', sa.String(length=20), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
@@ -62,6 +64,8 @@ def upgrade():
     sa.Column('total_cost', sa.Float(), nullable=False),
     sa.Column('checkout_status', sa.String(length=50), nullable=True),
     sa.Column('pdf_receipt_url', sa.String(length=255), nullable=True),
+    sa.Column('ai_summary', sa.Text(), nullable=True),
+    sa.Column('estimated_delivery_global', sa.String(length=100), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['spec_id'], ['shopping_specs.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
