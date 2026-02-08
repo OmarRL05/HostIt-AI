@@ -5,7 +5,7 @@
 </template>
 
 <script setup>
-// Main App component - router-view will render the appropriate component based on route
+  import { RouterView } from 'vue-router';
 </script>
 
 <style>
@@ -31,7 +31,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #efe5e5;
 }
 
 ::-webkit-scrollbar-thumb {

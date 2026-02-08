@@ -1,4 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { useUserStore } from '../stores/user'
+
+// View imports
 import LoginView from '@/views/LoginView.vue'
 import ChatView from '@/views/ChatView.vue'
 import RegisterView from '@/views/RegisterView.vue'
@@ -48,6 +51,22 @@ const router = createRouter({
       
     }
   ],
+})
+
+router.beforeEach((to, from) => {
+  const userStore = useUserStore()
+  const publicPages = ['login', 'register']
+  const authRequired = !publicPages.includes(to.name)
+
+  // Redirect to login if trying to access protected page without auth
+  if (authRequired && !userStore.user) {
+    return { name: 'login' }
+  }
+
+  // Redirect to chat if logged in user tries to access login/register
+  if (publicPages.includes(to.name) && userStore.user) {
+    return { name: 'chat' }
+  }
 })
 
 export default router

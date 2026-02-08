@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import { defineStore } from 'pinia';
 
-export const useCounterStore = defineStore('user', () => {
+export const useUserStore = defineStore('user', () => {
   const user = ref(JSON.parse(localStorage.getItem('user')) || null);
 
   function setUser(userData) {
