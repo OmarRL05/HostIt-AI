@@ -21,7 +21,7 @@ def get_user_order(user_id):
             "summary": order.ai_summary,
             "items_count": len(order.items)
         })
-    return jsonify(results)
+    return jsonify(results), 200
 
 # Order Details
 @orders_bp.route('/api/orders/<int:order_id>', methods=['GET'])
@@ -42,7 +42,7 @@ def get_order_detail(order_id):
         "ai_summary": order.ai_summary,
         "delivery_date": order.estimated_delivery_global,
         "items": items_data
-    })
+    }), 200
 
 
 
@@ -78,4 +78,4 @@ def create_mock_order():
     return jsonify({
         "message": "Orden Mock creada exitosamente",
         "order_id": new_order.id
-    })
+    }), 201

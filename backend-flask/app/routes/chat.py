@@ -28,7 +28,7 @@ def get_or_create():
         "conversation_id": active_chat.id,
         "is_new": is_new,
         "status": active_chat.status
-    })
+    }), 200
 
 # Send a message
 @chat_bp.route('/api/chat/message', methods=["POST"])
@@ -65,7 +65,7 @@ def send_message():
         "user_message_id":user_msg.id,
         "ai_message":ai_response_text,
         "ai_message_id":ai_msg.id
-    })
+    }), 201
 
 # Look for the record of the chat
 @chat_bp.route('/api/chat/<int:conversation_id>', methods=["GET"])
@@ -76,4 +76,4 @@ def get_record(conversation_id):
         "role": msg.role,
         "content": msg.content,
         "created_at": msg.created_at.isoformat()
-    } for msg in messages])
+    } for msg in messages]), 200

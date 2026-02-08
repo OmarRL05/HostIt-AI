@@ -17,7 +17,7 @@ def get_user_profile(user_id):
         "full_name": user.full_name,
         "address": user.shipping_address,
         "payment_info": user.payment_method_mock or {}
-    })
+    }), 200
 
 # to update profile details
 @user_bp.route('/api/users/<int:user_id>', methods=['PUT'])
@@ -34,7 +34,7 @@ def update_user_profile(user_id):
     
     try:
         db.session.commit()
-        return jsonify({"message":"Proflie updated"})
+        return jsonify({"message":"Proflie updated"}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": str(e)}), 500
