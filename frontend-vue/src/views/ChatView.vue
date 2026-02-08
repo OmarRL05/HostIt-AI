@@ -55,12 +55,34 @@
             </svg>
           </button>
 
-          <div v-show="showChatHistory" class="mt-2 space-y-2">
-            <div 
-              v-for="chat in chatHistory" 
+          <div v-show="showChatHistory" class="mt-2 space-y-1">
+            <div
+              v-if="loadingConversations"
+              class="py-2 text-center text-sm text-gray-500"
+            >
+              Cargando...
+            </div>
+            <button
+              v-else
+              v-for="chat in chatHistory"
               :key="chat.id"
-              class="h-12 bg-gray-200 rounded-lg animate-pulse"
-            ></div>
+              type="button"
+              @click="selectConversation(chat.id)"
+              :class="[
+                'w-full text-left px-4 py-3 rounded-lg text-sm transition-colors',
+                conversationId === chat.id
+                  ? 'bg-blue-100 text-blue-900 font-medium'
+                  : 'text-gray-700 hover:bg-gray-100'
+              ]"
+            >
+              <p class="truncate font-medium">{{ chat.title }}</p>
+              <p class="text-xs text-gray-500 mt-0.5">
+                {{ chat.message_count }} mensaje(s) · {{ formatChatDate(chat.created_at) }}
+              </p>
+            </button>
+            <p v-if="!loadingConversations && chatHistory.length === 0" class="px-4 py-2 text-sm text-gray-500">
+              Sin conversaciones aún
+            </p>
           </div>
         </div>
       </nav>
@@ -196,7 +218,13 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
-import { getOrCreateConversation, getConversationRecord, sendMessage as sendChatMessage } from '@/api/chat';
+import {
+  getOrCreateConversation,
+  getConversationRecord,
+  getUserConversations,
+  createNewConversation,
+  sendMessage as sendChatMessage
+} from '@/api/chat';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -208,13 +236,9 @@ const messages = ref([]);
 const cartItems = ref([]);
 const conversationId = ref(null);
 const sending = ref(false);
+const loadingConversations = ref(false);
 
-const chatHistory = ref([
-  { id: 1 },
-  { id: 2 },
-  { id: 3 },
-  { id: 4 }
-]);
+const chatHistory = ref([]);
 
 // Computed
 const cartTotal = computed(() => {
@@ -222,30 +246,79 @@ const cartTotal = computed(() => {
 });
 
 // Methods
+const loadConversationsList = async () => {
+  const userId = userStore.user?.id;
+  if (!userId) return;
+  loadingConversations.value = true;
+  try {
+    const { data } = await getUserConversations(userId);
+    chatHistory.value = data;
+  } catch (err) {
+    console.error('Error loading conversations list:', err);
+    chatHistory.value = [];
+  } finally {
+    loadingConversations.value = false;
+  }
+};
+
+const formatChatDate = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 86400000) return d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  if (diff < 604800000) return d.toLocaleDateString('es', { weekday: 'short' });
+  return d.toLocaleDateString('es', { day: 'numeric', month: 'short' });
+};
+
 const loadConversation = async () => {
   const userId = userStore.user?.id;
   if (!userId) return;
   try {
     const { data: conv } = await getOrCreateConversation(userId);
     conversationId.value = conv.conversation_id;
-    const { data: record } = await getConversationRecord(conv.conversation_id);
+    await loadMessagesForConversation(conv.conversation_id);
+    await loadConversationsList();
+  } catch (err) {
+    console.error('Error loading conversation:', err);
+  }
+};
+
+const loadMessagesForConversation = async (convId) => {
+  try {
+    const { data: record } = await getConversationRecord(convId);
     messages.value = record.map((msg, i) => ({
       id: `msg-${i}-${msg.created_at}`,
       role: msg.role,
       content: msg.content
     }));
   } catch (err) {
-    console.error('Error loading conversation:', err);
+    console.error('Error loading messages:', err);
+    messages.value = [];
   }
+};
+
+const selectConversation = async (convId) => {
+  conversationId.value = convId;
+  await loadMessagesForConversation(convId);
 };
 
 const toggleChatHistory = () => {
   showChatHistory.value = !showChatHistory.value;
 };
 
-const createNewChat = () => {
-  messages.value = [];
-  cartItems.value = [];
+const createNewChat = async () => {
+  const userId = userStore.user?.id;
+  if (!userId) return;
+  try {
+    const { data } = await createNewConversation(userId);
+    conversationId.value = data.conversation_id;
+    messages.value = [];
+    cartItems.value = [];
+    await loadConversationsList();
+  } catch (err) {
+    console.error('Error creating new chat:', err);
+  }
 };
 
 const sendMessage = async () => {
