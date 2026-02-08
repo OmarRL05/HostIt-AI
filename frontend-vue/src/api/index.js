@@ -7,5 +7,5 @@ export { default as apiClient } from './client';
 export * from './auth';
 export * from './users';
 export * from './orders';
-export * from './chat';
+export { getOrCreateConversation, getConversationRecord, getUserConversations, createNewConversation, sendMessage } from './chat';
 export * from './status';

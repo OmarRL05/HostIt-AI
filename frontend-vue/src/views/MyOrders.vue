@@ -65,7 +65,7 @@
                 </div>
                   <div>
                     <p class="text-xs text-gray-500 uppercase mb-1">Total</p>
-                    <p class="text-sm font-bold text-gray-900">${{ Number(orderDetail.total_cost).toFixed(2) }}</p>
+                    <p class="text-sm font-bold text-gray-900">${{ Number(order.total).toFixed(2) }}</p>
                   </div>
                 </div>
                 <span :class="['px-4 py-2 rounded-full text-sm font-medium', getStatusColor(orderDetail.status)]">
@@ -78,11 +78,12 @@
               <p v-if="orderDetail.delivery_date" class="text-sm text-gray-700 mb-4">
                 Entrega estimada: {{ formatDate(orderDetail.delivery_date) }}
               </p>
+              <h3 class="text-sm font-semibold text-gray-900 mb-3">Productos</h3>
               <div class="space-y-4">
                 <div
-                  v-for="(item, idx) in orderDetail.items"
+                  v-for="(item, idx) in detailItems"
                   :key="idx"
-                  class="flex gap-4 items-center"
+                  class="flex gap-4 items-center p-3 bg-gray-50 rounded-lg"
                 >
                   <div class="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0" />
                   <div class="flex-1 min-w-0">
@@ -212,6 +213,12 @@ const orderIdParam = computed(() => route.params.orderId ? Number(route.params.o
 const filteredOrders = computed(() => {
   if (activeFilter.value === 'all') return orders.value;
   return orders.value.filter(order => formatStatus(order.status) === activeFilter.value);
+});
+
+const detailItems = computed(() => {
+  const order = orderDetail.value;
+  if (!order || !Array.isArray(order.items)) return [];
+  return order.items;
 });
 
 // Methods

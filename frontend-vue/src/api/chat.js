@@ -1,6 +1,24 @@
 import apiClient from './client';
 
 /**
+ * Lista todas las conversaciones del usuario.
+ * @param {number} userId
+ * @returns {Promise<Array<{ id: number, title: string, status: string, created_at: string, message_count: number }>>}
+ */
+export function getUserConversations(userId) {
+  return apiClient.get(`/chat/user/${userId}`);
+}
+
+/**
+ * Crea una nueva conversación (cierra la abierta si existe).
+ * @param {number} userId
+ * @returns {Promise<{ conversation_id: number, status: string }>}
+ */
+export function createNewConversation(userId) {
+  return apiClient.post('/chat/new', { user_id: userId });
+}
+
+/**
  * Obtiene o crea la conversación activa del usuario.
  * @param {number} userId
  * @returns {Promise<{ conversation_id: number, is_new: boolean, status: string }>}

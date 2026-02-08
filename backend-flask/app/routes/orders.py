@@ -26,7 +26,7 @@ def get_user_order(user_id):
 # Order Details
 @orders_bp.route('/api/orders/<int:order_id>', methods=['GET'])
 def get_order_detail(order_id):
-    order = Order.query.get_or_404(order_id=order_id)
+    order = Order.query.get_or_404(order_id)
 
     items_data = [{
         "name": i.product_name,
