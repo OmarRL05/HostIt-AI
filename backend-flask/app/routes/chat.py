@@ -35,7 +35,7 @@ def get_or_create():
 def send_message():
     data = request.get_json()
     conversation_id = data.get('conversation_id')
-    user_content = data.get('message') #not sure var name
+    user_content = data.get('message') #json from front has to have "message" as the key of the message
 
     if not conversation_id or not user_content:
         return jsonify({"error":"Missing Data"}), 400

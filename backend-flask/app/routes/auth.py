@@ -1,6 +1,7 @@
 import email
 from hmac import new
 import json
+
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from ..extensions import db
