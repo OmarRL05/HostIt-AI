@@ -27,4 +27,10 @@ def create_app(config_class=Config):
     from .routes.chat import chat_bp
     app.register_blueprint(chat_bp)
 
+    from .routes.orders import orders_bp
+    app.register_blueprint(orders_bp)
+
+    from .routes.users import user_bp
+    app.register_blueprint(user_bp)
+
     return app

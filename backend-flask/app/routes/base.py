@@ -8,4 +8,4 @@ def server_status():
         'status': 'online',
         'message': 'Server is running',
         'service': 'AI Agent Commerce API'
-    })
+    }), 200
