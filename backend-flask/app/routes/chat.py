@@ -7,6 +7,7 @@ import requests
 import os
 
 chat_bp = Blueprint('chat', __name__)
+N8N_WEBHOOK_URL = os.environ.get('N8N_WEBHOOK_URL')
 
 # List all conversations for a user
 @chat_bp.route('/api/chat/user/<int:user_id>', methods=['GET'])
@@ -66,37 +67,47 @@ def get_or_create():
 def send_message():
     data = request.get_json()
     conversation_id = data.get('conversation_id')
-    user_content = data.get('message') #json from front has to have "message" as the key of the message
-
-    if not conversation_id or not user_content:
-        return jsonify({"error":"Missing Data"}), 400
+    user_content = data.get('message')
     
-    user_msg = ChatMessage(
-        conversation_id=conversation_id,
-        role='user',
-        content=user_content
-    )
-
+    # 1. Guardar mensaje del Usuario (Rápido, para que quede en historial)
+    user_msg = ChatMessage(conversation_id=conversation_id, role='user', content=user_content)
     db.session.add(user_msg)
     db.session.commit()
+    
+    # 2. Enviar a n8n para procesamiento INTELIGENTE
+    ai_response_text = "Lo siento, mi cerebro está desconectado."
+    
+    try:
+        # Enviamos contexto: ID de conversación y el mensaje
+        payload = {
+            "sessionId":conversation_id,
+            "userId": user_msg.id,
+            "chatInput": user_content
+        }
+        
+        # Llamada a n8n
+        response = requests.post(N8N_WEBHOOK_URL, json=payload, timeout=30)
+        
+        if response.status_code == 200:
+            n8n_data = response.json()
+            # n8n debe devolver un JSON: { "text": "Hola..." }
+            ai_response_text = n8n_data.get('text', 'Sin respuesta de IA')
+        else:
+            ai_response_text = f"Error en n8n: {response.status_code}"
 
-    # n8n is being introduced here later
-    ai_response_text = f'Message catched: {user_content}...'
-    # ....
+    except Exception as e:
+        ai_response_text = f"Error conectando con la IA: {str(e)}"
 
-    ai_msg = ChatMessage(
-        conversation_id=conversation_id,
-        role='assistant',
-        content=ai_response_text
-    )
+    # 3. Guardar respuesta del Asistente
+    ai_msg = ChatMessage(conversation_id=conversation_id, role='assistant', content=ai_response_text)
     db.session.add(ai_msg)
     db.session.commit()
-
+    
     return jsonify({
-        "user_message_id":user_msg.id,
-        "ai_message":ai_response_text,
-        "ai_message_id":ai_msg.id
-    }), 201
+        "user_message_id": user_msg.id,
+        "ai_message": ai_response_text,
+        "ai_message_id": ai_msg.id
+    })
 
 # Look for the record of the chat
 @chat_bp.route('/api/chat/<int:conversation_id>', methods=["GET"])

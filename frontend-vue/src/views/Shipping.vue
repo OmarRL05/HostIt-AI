@@ -1,20 +1,20 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-surface-50">
     <!-- Header -->
-    <header class="bg-white border-b border-gray-200">
+    <header class="bg-white shadow-sm">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="flex items-center gap-4">
           <router-link 
             to="/orders" 
-            class="text-gray-400 hover:text-gray-600"
+            class="text-surface-400 hover:text-brand-600 transition-colors"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
           </router-link>
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">Order Tracking</h1>
-            <p class="text-sm text-gray-500 mt-1">Order #{{ orderData.orderId }}</p>
+            <h1 class="text-2xl font-bold text-brand-900">Order Tracking</h1>
+            <p class="text-sm text-surface-500 mt-1">Order #{{ orderData.orderId }}</p>
           </div>
         </div>
       </div>
@@ -23,11 +23,11 @@
     <!-- Main Content -->
     <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Tracking Summary Card -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+      <div class="card mb-6">
         <div class="flex items-center justify-between mb-6">
           <div>
-            <h2 class="text-lg font-semibold text-gray-900 mb-1">{{ orderData.productName }}</h2>
-            <p class="text-sm text-gray-500">Sold by {{ orderData.retailer }}</p>
+            <h2 class="text-lg font-semibold text-surface-800 mb-1">{{ orderData.productName }}</h2>
+            <p class="text-sm text-surface-500">Sold by {{ orderData.retailer }}</p>
           </div>
           <span 
             :class="[
@@ -40,30 +40,30 @@
         </div>
 
         <!-- Delivery Estimate -->
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div class="bg-brand-50 border border-brand-200 rounded-xl p-4 mb-6">
           <div class="flex items-start gap-3">
-            <svg class="w-6 h-6 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6 text-brand-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
             </svg>
             <div>
-              <p class="font-medium text-gray-900">
+              <p class="font-medium text-surface-800">
                 {{ orderData.status === 'Delivered' ? 'Delivered' : 'Estimated Delivery' }}
               </p>
-              <p class="text-2xl font-bold text-blue-600 mt-1">{{ formatDate(orderData.estimatedDelivery) }}</p>
-              <p class="text-sm text-gray-600 mt-1">{{ orderData.deliveryWindow }}</p>
+              <p class="text-2xl font-bold text-brand-600 mt-1">{{ formatDate(orderData.estimatedDelivery) }}</p>
+              <p class="text-sm text-surface-600 mt-1">{{ orderData.deliveryWindow }}</p>
             </div>
           </div>
         </div>
 
         <!-- Tracking Number -->
-        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+        <div class="flex items-center justify-between p-4 bg-surface-50 rounded-xl">
           <div>
-            <p class="text-xs text-gray-500 uppercase mb-1">Tracking Number</p>
-            <p class="font-mono text-sm font-medium text-gray-900">{{ orderData.trackingNumber }}</p>
+            <p class="text-xs text-surface-500 uppercase mb-1">Tracking Number</p>
+            <p class="font-mono text-sm font-medium text-surface-800">{{ orderData.trackingNumber }}</p>
           </div>
           <button 
             @click="copyTrackingNumber"
-            class="px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+            class="px-3 py-1.5 text-sm text-brand-600 hover:bg-brand-50 rounded-lg transition-colors font-medium"
           >
             {{ copied ? 'Copied!' : 'Copy' }}
           </button>
@@ -71,12 +71,11 @@
       </div>
 
       <!-- Tracking Timeline -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6">Tracking History</h3>
+      <div class="card">
+        <h3 class="text-lg font-semibold text-brand-900 mb-6">Tracking History</h3>
 
         <div class="relative">
-          <!-- Timeline Line -->
-          <div class="absolute left-4 top-2 bottom-2 w-0.5 bg-gray-200"></div>
+          <div class="absolute left-4 top-2 bottom-2 w-0.5 bg-surface-200"></div>
 
           <!-- Timeline Events -->
           <div class="space-y-6">
@@ -91,7 +90,7 @@
                   'relative z-10 flex items-center justify-center w-8 h-8 rounded-full border-2',
                   index === 0 
                     ? 'bg-green-500 border-green-500' 
-                    : 'bg-white border-gray-300'
+                    : 'bg-white border-surface-300'
                 ]"
               >
                 <svg 
@@ -118,13 +117,13 @@
                     <p 
                       :class="[
                         'font-medium',
-                        index === 0 ? 'text-gray-900' : 'text-gray-700'
+                        index === 0 ? 'text-surface-800' : 'text-surface-700'
                       ]"
                     >
                       {{ event.status }}
                     </p>
-                    <p class="text-sm text-gray-500 mt-1">{{ event.location }}</p>
-                    <p class="text-xs text-gray-400 mt-1">{{ formatDateTime(event.timestamp) }}</p>
+                    <p class="text-sm text-surface-500 mt-1">{{ event.location }}</p>
+                    <p class="text-xs text-surface-400 mt-1">{{ formatDateTime(event.timestamp) }}</p>
                   </div>
                   <span 
                     v-if="index === 0" 
@@ -133,7 +132,7 @@
                     Latest
                   </span>
                 </div>
-                <p v-if="event.description" class="text-sm text-gray-600 mt-2">
+                <p v-if="event.description" class="text-sm text-surface-600 mt-2">
                   {{ event.description }}
                 </p>
               </div>
@@ -143,28 +142,28 @@
       </div>
 
       <!-- Delivery Address -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Delivery Address</h3>
-        <div class="text-gray-700">
+      <div class="card mt-6">
+        <h3 class="text-lg font-semibold text-brand-900 mb-4">Delivery Address</h3>
+        <div class="text-surface-700">
           <p class="font-medium">{{ orderData.deliveryAddress.name }}</p>
           <p class="mt-2">{{ orderData.deliveryAddress.street }}</p>
           <p>{{ orderData.deliveryAddress.city }}, {{ orderData.deliveryAddress.state }} {{ orderData.deliveryAddress.zip }}</p>
-          <p class="mt-2 text-gray-500">{{ orderData.deliveryAddress.phone }}</p>
+          <p class="mt-2 text-surface-500">{{ orderData.deliveryAddress.phone }}</p>
         </div>
       </div>
 
       <!-- Carrier Info -->
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Carrier Information</h3>
+      <div class="card mt-6">
+        <h3 class="text-lg font-semibold text-brand-900 mb-4">Carrier Information</h3>
         <div class="flex items-center justify-between">
           <div>
-            <p class="font-medium text-gray-900">{{ orderData.carrier }}</p>
-            <p class="text-sm text-gray-500 mt-1">Service: {{ orderData.shippingMethod }}</p>
+            <p class="font-medium text-surface-800">{{ orderData.carrier }}</p>
+            <p class="text-sm text-surface-500 mt-1">Service: {{ orderData.shippingMethod }}</p>
           </div>
           <a 
             :href="orderData.carrierTrackingUrl" 
             target="_blank"
-            class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-brand-100 text-brand-700 rounded-xl text-sm font-medium hover:bg-brand-200 transition-colors"
           >
             Track on {{ orderData.carrier }}
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,14 +177,14 @@
       <div class="mt-6 flex gap-3">
         <button 
           @click="contactSupport"
-          class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          class="btn-secondary flex-1"
         >
           Contact Support
         </button>
         <button 
           v-if="orderData.status !== 'Delivered'"
           @click="modifyDelivery"
-          class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          class="btn-secondary flex-1"
         >
           Modify Delivery
         </button>
