@@ -4,10 +4,14 @@
     <aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
       <!-- Sidebar Header -->
       <div class="p-4 border-b border-gray-200">
-        <button class="w-full text-gray-600 hover:text-gray-900">
+        <button
+          @click="handleLogout"
+          class="w-full flex items-center gap-2 text-gray-600 hover:text-gray-900"
+        >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
+          <span class="text-sm font-medium">Cerrar sesión</span>
         </button>
       </div>
 
@@ -51,12 +55,34 @@
             </svg>
           </button>
 
-          <div v-show="showChatHistory" class="mt-2 space-y-2">
-            <div 
-              v-for="chat in chatHistory" 
+          <div v-show="showChatHistory" class="mt-2 space-y-1">
+            <div
+              v-if="loadingConversations"
+              class="py-2 text-center text-sm text-gray-500"
+            >
+              Cargando...
+            </div>
+            <button
+              v-else
+              v-for="chat in chatHistory"
               :key="chat.id"
-              class="h-12 bg-gray-200 rounded-lg animate-pulse"
-            ></div>
+              type="button"
+              @click="selectConversation(chat.id)"
+              :class="[
+                'w-full text-left px-4 py-3 rounded-lg text-sm transition-colors',
+                conversationId === chat.id
+                  ? 'bg-blue-100 text-blue-900 font-medium'
+                  : 'text-gray-700 hover:bg-gray-100'
+              ]"
+            >
+              <p class="truncate font-medium">{{ chat.title }}</p>
+              <p class="text-xs text-gray-500 mt-0.5">
+                {{ chat.message_count }} mensaje(s) · {{ formatChatDate(chat.created_at) }}
+              </p>
+            </button>
+            <p v-if="!loadingConversations && chatHistory.length === 0" class="px-4 py-2 text-sm text-gray-500">
+              Sin conversaciones aún
+            </p>
           </div>
         </div>
       </nav>
@@ -189,23 +215,30 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/user';
+import {
+  getOrCreateConversation,
+  getConversationRecord,
+  getUserConversations,
+  createNewConversation,
+  sendMessage as sendChatMessage
+} from '@/api/chat';
 
 const router = useRouter();
+const userStore = useUserStore();
 
 // State
 const showChatHistory = ref(false);
 const inputMessage = ref('');
 const messages = ref([]);
 const cartItems = ref([]);
+const conversationId = ref(null);
+const sending = ref(false);
+const loadingConversations = ref(false);
 
-const chatHistory = ref([
-  { id: 1 },
-  { id: 2 },
-  { id: 3 },
-  { id: 4 }
-]);
+const chatHistory = ref([]);
 
 // Computed
 const cartTotal = computed(() => {
@@ -213,34 +246,115 @@ const cartTotal = computed(() => {
 });
 
 // Methods
+const loadConversationsList = async () => {
+  const userId = userStore.user?.id;
+  if (!userId) return;
+  loadingConversations.value = true;
+  try {
+    const { data } = await getUserConversations(userId);
+    chatHistory.value = data;
+  } catch (err) {
+    console.error('Error loading conversations list:', err);
+    chatHistory.value = [];
+  } finally {
+    loadingConversations.value = false;
+  }
+};
+
+const formatChatDate = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 86400000) return d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  if (diff < 604800000) return d.toLocaleDateString('es', { weekday: 'short' });
+  return d.toLocaleDateString('es', { day: 'numeric', month: 'short' });
+};
+
+const loadConversation = async () => {
+  const userId = userStore.user?.id;
+  if (!userId) return;
+  try {
+    const { data: conv } = await getOrCreateConversation(userId);
+    conversationId.value = conv.conversation_id;
+    await loadMessagesForConversation(conv.conversation_id);
+    await loadConversationsList();
+  } catch (err) {
+    console.error('Error loading conversation:', err);
+  }
+};
+
+const loadMessagesForConversation = async (convId) => {
+  try {
+    const { data: record } = await getConversationRecord(convId);
+    messages.value = record.map((msg, i) => ({
+      id: `msg-${i}-${msg.created_at}`,
+      role: msg.role,
+      content: msg.content
+    }));
+  } catch (err) {
+    console.error('Error loading messages:', err);
+    messages.value = [];
+  }
+};
+
+const selectConversation = async (convId) => {
+  conversationId.value = convId;
+  await loadMessagesForConversation(convId);
+};
+
 const toggleChatHistory = () => {
   showChatHistory.value = !showChatHistory.value;
 };
 
-const createNewChat = () => {
-  messages.value = [];
-  cartItems.value = [];
+const createNewChat = async () => {
+  const userId = userStore.user?.id;
+  if (!userId) return;
+  try {
+    const { data } = await createNewConversation(userId);
+    conversationId.value = data.conversation_id;
+    messages.value = [];
+    cartItems.value = [];
+    await loadConversationsList();
+  } catch (err) {
+    console.error('Error creating new chat:', err);
+  }
 };
 
-const sendMessage = () => {
-  if (!inputMessage.value.trim()) return;
-  
-  messages.value.push({
-    id: Date.now(),
-    role: 'user',
-    content: inputMessage.value
-  });
-  
+const sendMessage = async () => {
+  const text = inputMessage.value.trim();
+  if (!text || sending.value || !conversationId.value) return;
+
+  const userMsg = { id: `user-${Date.now()}`, role: 'user', content: text };
+  messages.value.push(userMsg);
   inputMessage.value = '';
-  
-  // Simulate AI response
-  setTimeout(() => {
-    messages.value.push({
-      id: Date.now(),
-      role: 'assistant',
-      content: "I'll help you find the best products for your needs. Let me search across multiple retailers..."
+  sending.value = true;
+
+  try {
+    const { data } = await sendChatMessage({
+      conversation_id: conversationId.value,
+      message: text
     });
-  }, 1000);
+    messages.value.push({
+      id: `ai-${data.ai_message_id}`,
+      role: 'assistant',
+      content: data.ai_message
+    });
+  } catch (err) {
+    console.error('Error sending message:', err);
+    messages.value.push({
+      id: `ai-err-${Date.now()}`,
+      role: 'assistant',
+      content: 'No pude enviar el mensaje. Intenta de nuevo.'
+    });
+  } finally {
+    sending.value = false;
+  }
+};
+
+const handleLogout = () => {
+  userStore.logout();
+  router.push('/');
 };
 
 const removeItem = (itemId) => {
@@ -248,11 +362,15 @@ const removeItem = (itemId) => {
 };
 
 const replaceItem = (itemId) => {
-  // TODO: Implement item replacement logic
   console.log('Replace item:', itemId);
 };
 
 const proceedToCheckout = () => {
   router.push('/payment');
 };
+
+onMounted(() => {
+  if (!userStore.user) return;
+  loadConversation();
+});
 </script>

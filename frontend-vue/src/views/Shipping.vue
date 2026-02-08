@@ -195,8 +195,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { getOrderDetail } from '@/api/orders';
 
 const router = useRouter();
 const route = useRoute();
@@ -204,11 +205,11 @@ const route = useRoute();
 // State
 const copied = ref(false);
 
-// Mock order data
+// Order data: from API when available, rest mock (tracking not in API yet)
 const orderData = ref({
   orderId: route.params.orderId || 'ORD-2026-002',
-  productName: 'The North Face Ski Pants',
-  retailer: 'REI',
+  productName: '—',
+  retailer: '—',
   status: 'In Transit',
   trackingNumber: '1Z999AA10123456784',
   carrier: 'UPS',
@@ -223,6 +224,25 @@ const orderData = ref({
     state: 'CA',
     zip: '94102',
     phone: '+1 (555) 123-4567'
+  }
+});
+
+onMounted(async () => {
+  const orderId = route.params.orderId ? Number(route.params.orderId) : null;
+  const itemIndex = route.params.itemId ? Number(route.params.itemId) : 0;
+  if (!orderId) return;
+  try {
+    const { data } = await getOrderDetail(orderId);
+    orderData.value.orderId = data.id;
+    orderData.value.estimatedDelivery = data.delivery_date || orderData.value.estimatedDelivery;
+    if (data.items && data.items.length) {
+      const item = data.items[itemIndex] || data.items[0];
+      orderData.value.productName = item.name;
+      orderData.value.retailer = item.retailer;
+      orderData.value.status = item.status || orderData.value.status;
+    }
+  } catch (err) {
+    console.error('Error loading order for shipping:', err);
   }
 });
 

@@ -121,8 +121,11 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { login } from '@/api/auth';
+import { useUserStore } from '@/stores/user';
 
 const router = useRouter();
+const userStore = useUserStore();
 
 // State
 const loading = ref(false);
@@ -141,31 +144,21 @@ const handleLogin = async () => {
   error.value = '';
 
   try {
-    // TODO: Replace with actual API call
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        email: formData.value.email,
-        password: formData.value.password
-      })
+    const { data } = await login({
+      email: formData.value.email,
+      password: formData.value.password
     });
 
-    if (!response.ok) {
-      throw new Error('Invalid credentials');
-    }
+    userStore.setUser({
+      id: data.user_id,
+      email: data.email,
+      full_name: data.full_name
+    });
 
-    const data = await response.json();
-    
-    // Store token
-    localStorage.setItem('token', data.token);
-    
-    // Redirect to chat
     router.push('/chat');
   } catch (err) {
-    error.value = err.message || 'An error occurred during login';
+    const message = err.response?.data?.error || err.message || 'Error al iniciar sesión';
+    error.value = message;
   } finally {
     loading.value = false;
   }

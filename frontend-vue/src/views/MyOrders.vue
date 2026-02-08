@@ -38,154 +38,167 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Empty State -->
-      <div v-if="filteredOrders.length === 0" class="text-center py-16">
-        <div class="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-6">
-          <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-          </svg>
-        </div>
-        <h3 class="text-lg font-semibold text-gray-900 mb-2">No orders found</h3>
-        <p class="text-gray-500 mb-6">Start shopping to see your orders here</p>
-        <router-link 
-          to="/chat" 
-          class="inline-flex items-center gap-2 bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-          </svg>
-          Start Shopping
-        </router-link>
-      </div>
-
-      <!-- Orders List -->
-      <div v-else class="space-y-6">
-        <div 
-          v-for="order in filteredOrders" 
-          :key="order.id"
-          class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
-        >
-          <!-- Order Header -->
-          <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-6">
-                <div>
-                  <p class="text-xs text-gray-500 uppercase mb-1">Order ID</p>
-                  <p class="font-mono text-sm font-medium text-gray-900">{{ order.id }}</p>
+      <!-- Detail View (single order) -->
+      <template v-if="orderIdParam">
+        <div v-if="loadingDetail" class="text-center py-12">Cargando...</div>
+        <div v-else-if="orderDetail" class="space-y-6">
+          <button
+            @click="router.push('/orders')"
+            class="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Volver a mis órdenes
+          </button>
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-6">
+                  <div>
+                    <p class="text-xs text-gray-500 uppercase mb-1">Order ID</p>
+                    <p class="font-mono text-sm font-medium text-gray-900">{{ orderDetail.id }}</p>
+                  </div>
+                <div v-if="orderDetail.delivery_date">
+                  <p class="text-xs text-gray-500 uppercase mb-1">Entrega estimada</p>
+                  <p class="text-sm font-medium text-gray-900">{{ formatDate(orderDetail.delivery_date) }}</p>
                 </div>
-                <div>
-                  <p class="text-xs text-gray-500 uppercase mb-1">Date</p>
-                  <p class="text-sm font-medium text-gray-900">{{ formatDate(order.date) }}</p>
-                </div>
-                <div>
-                  <p class="text-xs text-gray-500 uppercase mb-1">Total</p>
-                  <p class="text-sm font-bold text-gray-900">${{ order.total.toFixed(2) }}</p>
-                </div>
-              </div>
-
-              <!-- Status Badge -->
-              <span 
-                :class="[
-                  'px-4 py-2 rounded-full text-sm font-medium',
-                  getStatusColor(order.status)
-                ]"
-              >
-                {{ order.status }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Order Items -->
-          <div class="p-6">
-            <div class="space-y-4">
-              <div 
-                v-for="item in order.items" 
-                :key="item.id"
-                class="flex gap-4"
-              >
-                <div class="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-                  <img 
-                    v-if="item.image" 
-                    :src="item.image" 
-                    :alt="item.name"
-                    class="w-full h-full object-cover"
-                  />
-                </div>
-                
-                <div class="flex-1 min-w-0">
-                  <h4 class="font-medium text-gray-900 mb-1">{{ item.name }}</h4>
-                  <p class="text-sm text-gray-500 mb-2">{{ item.retailer }}</p>
-                  <div class="flex items-center gap-4 text-sm">
-                    <span class="text-gray-600">Qty: {{ item.quantity }}</span>
-                    <span class="text-gray-900 font-medium">${{ item.price.toFixed(2) }}</span>
+                  <div>
+                    <p class="text-xs text-gray-500 uppercase mb-1">Total</p>
+                    <p class="text-sm font-bold text-gray-900">${{ Number(order.total).toFixed(2) }}</p>
                   </div>
                 </div>
-
-                <!-- Tracking Button -->
-                <div v-if="order.status === 'Shipped'" class="flex items-center">
-                  <button 
-                    @click="trackOrder(order.id, item.id)"
+                <span :class="['px-4 py-2 rounded-full text-sm font-medium', getStatusColor(orderDetail.status)]">
+                  {{ formatStatus(orderDetail.status) }}
+                </span>
+              </div>
+            </div>
+            <div class="p-6">
+              <p v-if="orderDetail.ai_summary" class="text-sm text-gray-600 mb-4">{{ orderDetail.ai_summary }}</p>
+              <p v-if="orderDetail.delivery_date" class="text-sm text-gray-700 mb-4">
+                Entrega estimada: {{ formatDate(orderDetail.delivery_date) }}
+              </p>
+              <h3 class="text-sm font-semibold text-gray-900 mb-3">Productos</h3>
+              <div class="space-y-4">
+                <div
+                  v-for="(item, idx) in detailItems"
+                  :key="idx"
+                  class="flex gap-4 items-center p-3 bg-gray-50 rounded-lg"
+                >
+                  <div class="w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0" />
+                  <div class="flex-1 min-w-0">
+                    <h4 class="font-medium text-gray-900">{{ item.name }}</h4>
+                    <p class="text-sm text-gray-500">{{ item.retailer }}</p>
+                    <p class="text-sm font-medium text-gray-900">${{ Number(item.price).toFixed(2) }}</p>
+                  </div>
+                  <span :class="['px-2 py-1 rounded text-xs font-medium', getStatusColor(item.status) || 'bg-gray-100 text-gray-800']">
+                    {{ item.status }}
+                  </span>
+                  <button
+                    v-if="formatStatus(orderDetail.status) === 'Shipped'"
+                    @click="trackOrder(orderDetail.id, idx)"
                     class="text-blue-600 hover:text-blue-700 text-sm font-medium"
                   >
-                    Track Package
+                    Track
                   </button>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </template>
 
-            <!-- Delivery Info -->
-            <div v-if="order.deliveryDate" class="mt-6 pt-6 border-t border-gray-200">
-              <div class="flex items-center gap-2 text-sm">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
-                </svg>
-                <span class="text-gray-700">
-                  <span class="font-medium">
-                    {{ order.status === 'Delivered' ? 'Delivered on' : 'Estimated delivery' }}:
-                  </span>
-                  {{ formatDate(order.deliveryDate) }}
+      <!-- List View -->
+      <template v-else>
+        <div v-if="loading" class="text-center py-12">Cargando órdenes...</div>
+        <div v-else-if="filteredOrders.length === 0" class="text-center py-16">
+          <div class="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-6">
+            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">No orders found</h3>
+          <p class="text-gray-500 mb-6">Start shopping to see your orders here</p>
+          <router-link
+            to="/chat"
+            class="inline-flex items-center gap-2 bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            Start Shopping
+          </router-link>
+        </div>
+
+        <div v-else class="space-y-6">
+          <div
+            v-for="order in filteredOrders"
+            :key="order.id"
+            class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+          >
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-6">
+                  <div>
+                    <p class="text-xs text-gray-500 uppercase mb-1">Order ID</p>
+                    <p class="font-mono text-sm font-medium text-gray-900">{{ order.id }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500 uppercase mb-1">Date</p>
+                    <p class="text-sm font-medium text-gray-900">{{ formatDate(order.date) }}</p>
+                  </div>
+                  <div>
+                    <p class="text-xs text-gray-500 uppercase mb-1">Total</p>
+                    <p class="text-sm font-bold text-gray-900">${{ Number(order.total).toFixed(2) }}</p>
+                  </div>
+                </div>
+                <span :class="['px-4 py-2 rounded-full text-sm font-medium', getStatusColor(order.status)]">
+                  {{ formatStatus(order.status) }}
                 </span>
               </div>
             </div>
-
-            <!-- Action Buttons -->
-            <div class="mt-6 flex gap-3">
-              <button 
-                @click="viewOrderDetails(order.id)"
-                class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                View Details
-              </button>
-              <button 
-                v-if="order.status === 'Delivered'"
-                @click="reorder(order.id)"
-                class="flex-1 px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
-              >
-                Buy Again
-              </button>
-              <button 
-                v-if="['Processing', 'Shipped'].includes(order.status)"
-                @click="cancelOrder(order.id)"
-                class="px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-colors"
-              >
-                Cancel Order
-              </button>
+            <div class="p-6">
+              <p v-if="order.summary" class="text-sm text-gray-600 mb-2">{{ order.summary }}</p>
+              <p class="text-sm text-gray-500 mb-4">{{ order.items_count }} item(s)</p>
+              <div class="flex gap-3">
+                <button
+                  @click="viewOrderDetails(order.id)"
+                  class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  View Details
+                </button>
+                <button
+                  v-if="formatStatus(order.status) === 'Delivered'"
+                  @click="reorder(order.id)"
+                  class="flex-1 px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+                >
+                  Buy Again
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </template>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { useUserStore } from '@/stores/user';
+import { getUserOrders, getOrderDetail } from '@/api/orders';
 
 const router = useRouter();
+const route = useRoute();
+const userStore = useUserStore();
 
 // State
 const activeFilter = ref('all');
+const orders = ref([]);
+const orderDetail = ref(null);
+const loading = ref(false);
+const loadingDetail = ref(false);
 
 const orderStatuses = [
   { label: 'All', value: 'all' },
@@ -194,103 +207,73 @@ const orderStatuses = [
   { label: 'Delivered', value: 'Delivered' }
 ];
 
-// Mock orders data
-const orders = ref([
-  {
-    id: 'ORD-2026-001',
-    date: '2026-02-05',
-    status: 'Delivered',
-    total: 345.99,
-    deliveryDate: '2026-02-06',
-    items: [
-      {
-        id: 'item-1',
-        name: 'Columbia Powder Keg II Jacket',
-        retailer: 'Amazon',
-        quantity: 1,
-        price: 189.99,
-        image: null
-      },
-      {
-        id: 'item-2',
-        name: 'The North Face Ski Pants',
-        retailer: 'REI',
-        quantity: 1,
-        price: 156.00,
-        image: null
-      }
-    ]
-  },
-  {
-    id: 'ORD-2026-002',
-    date: '2026-02-06',
-    status: 'Shipped',
-    total: 89.99,
-    deliveryDate: '2026-02-09',
-    items: [
-      {
-        id: 'item-3',
-        name: 'Smartwool Merino Wool Socks',
-        retailer: 'Backcountry',
-        quantity: 2,
-        price: 44.99,
-        image: null
-      },
-      {
-        id: 'item-4',
-        name: 'Outdoor Research Gloves',
-        retailer: 'Moosejaw',
-        quantity: 1,
-        price: 45.00,
-        image: null
-      }
-    ]
-  },
-  {
-    id: 'ORD-2026-003',
-    date: '2026-02-07',
-    status: 'Processing',
-    total: 129.99,
-    deliveryDate: '2026-02-10',
-    items: [
-      {
-        id: 'item-5',
-        name: 'Smith Optics Snow Goggles',
-        retailer: 'Evo',
-        quantity: 1,
-        price: 129.99,
-        image: null
-      }
-    ]
-  }
-]);
+const orderIdParam = computed(() => route.params.orderId ? Number(route.params.orderId) : null);
 
 // Computed
 const filteredOrders = computed(() => {
-  if (activeFilter.value === 'all') {
-    return orders.value;
-  }
-  return orders.value.filter(order => order.status === activeFilter.value);
+  if (activeFilter.value === 'all') return orders.value;
+  return orders.value.filter(order => formatStatus(order.status) === activeFilter.value);
+});
+
+const detailItems = computed(() => {
+  const order = orderDetail.value;
+  if (!order || !Array.isArray(order.items)) return [];
+  return order.items;
 });
 
 // Methods
 const formatDate = (dateString) => {
+  if (!dateString) return '';
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
   });
 };
 
+const formatStatus = (status) => {
+  const map = { completed: 'Delivered', simulated_pending: 'Processing' };
+  return map[status] || status || 'Processing';
+};
+
 const getStatusColor = (status) => {
+  const display = formatStatus(status);
   const colors = {
     'Processing': 'bg-yellow-100 text-yellow-800',
     'Shipped': 'bg-blue-100 text-blue-800',
     'Delivered': 'bg-green-100 text-green-800',
     'Cancelled': 'bg-red-100 text-red-800'
   };
-  return colors[status] || 'bg-gray-100 text-gray-800';
+  return colors[display] || 'bg-gray-100 text-gray-800';
+};
+
+const loadOrders = async () => {
+  const userId = userStore.user?.id;
+  if (!userId) return;
+  loading.value = true;
+  try {
+    const { data } = await getUserOrders(userId);
+    orders.value = data;
+  } catch (err) {
+    console.error('Error loading orders:', err);
+    orders.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
+
+const loadOrderDetail = async (id) => {
+  loadingDetail.value = true;
+  orderDetail.value = null;
+  try {
+    const { data } = await getOrderDetail(id);
+    orderDetail.value = data;
+  } catch (err) {
+    console.error('Error loading order detail:', err);
+  } finally {
+    loadingDetail.value = false;
+  }
 };
 
 const viewOrderDetails = (orderId) => {
@@ -302,14 +285,22 @@ const trackOrder = (orderId, itemId) => {
 };
 
 const reorder = (orderId) => {
-  // TODO: Implement reorder logic
   console.log('Reorder:', orderId);
 };
 
-const cancelOrder = (orderId) => {
-  // TODO: Implement cancel order logic
-  if (confirm('Are you sure you want to cancel this order?')) {
-    console.log('Cancel order:', orderId);
+onMounted(() => {
+  if (orderIdParam.value) {
+    loadOrderDetail(orderIdParam.value);
+  } else {
+    loadOrders();
   }
-};
+});
+
+watch(orderIdParam, (id) => {
+  if (id) loadOrderDetail(id);
+  else {
+    orderDetail.value = null;
+    loadOrders();
+  }
+});
 </script>

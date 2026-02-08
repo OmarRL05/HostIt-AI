@@ -8,7 +8,38 @@ import os
 
 chat_bp = Blueprint('chat', __name__)
 
-# Get conversation
+# List all conversations for a user
+@chat_bp.route('/api/chat/user/<int:user_id>', methods=['GET'])
+def list_conversations(user_id):
+    convos = Conversation.query.filter_by(user_id=user_id).order_by(Conversation.created_at.desc()).all()
+    return jsonify([{
+        "id": c.id,
+        "title": c.title or "New Chat",
+        "status": c.status,
+        "created_at": c.created_at.isoformat(),
+        "message_count": len(c.messages)
+    } for c in convos]), 200
+
+# Start a new conversation (close current open, create new)
+@chat_bp.route('/api/chat/new', methods=['POST'])
+def new_conversation():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+    active = Conversation.query.filter_by(user_id=user_id, status='open').first()
+    if active:
+        active.status = 'closed'
+        db.session.commit()
+    new_conv = Conversation(user_id=user_id)
+    db.session.add(new_conv)
+    db.session.commit()
+    return jsonify({
+        "conversation_id": new_conv.id,
+        "status": new_conv.status
+    }), 201
+
+# Get or create the current open conversation
 @chat_bp.route('/api/chat/conversation', methods=['POST'])
 def get_or_create():
     data = request.get_json()
