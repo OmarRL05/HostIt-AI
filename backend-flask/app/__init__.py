@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_cors import CORS
 from app.config import Config
+from .extensions import db, migrate
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -8,7 +9,12 @@ def create_app(config_class=Config):
 
     # Enable CORS for all routes
     # Allows Vue to talk to Flask without CORS errors
-    CORS(app, resources={r"/api/*": {"origins": "*"}}) # Change * to Vue app's URL when deployed
+    CORS(app, resources={r"/api/*": {"origins": "*"}})  # Change * to Vue app's URL when deployed
+
+    db.init_app(app)
+    migrate.init_app(app, db)
+
+    from . import models 
 
     # Register blueprints (routes)
     from .routes.base import base_bp
