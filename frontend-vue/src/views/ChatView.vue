@@ -4,10 +4,14 @@
     <aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
       <!-- Sidebar Header -->
       <div class="p-4 border-b border-gray-200">
-        <button class="w-full text-gray-600 hover:text-gray-900">
+        <button
+          @click="handleLogout"
+          class="w-full flex items-center gap-2 text-gray-600 hover:text-gray-900"
+        >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
+          <span class="text-sm font-medium">Cerrar sesión</span>
         </button>
       </div>
 
@@ -189,16 +193,21 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/user';
+import { getOrCreateConversation, getConversationRecord, sendMessage as sendChatMessage } from '@/api/chat';
 
 const router = useRouter();
+const userStore = useUserStore();
 
 // State
 const showChatHistory = ref(false);
 const inputMessage = ref('');
 const messages = ref([]);
 const cartItems = ref([]);
+const conversationId = ref(null);
+const sending = ref(false);
 
 const chatHistory = ref([
   { id: 1 },
@@ -213,6 +222,23 @@ const cartTotal = computed(() => {
 });
 
 // Methods
+const loadConversation = async () => {
+  const userId = userStore.user?.id;
+  if (!userId) return;
+  try {
+    const { data: conv } = await getOrCreateConversation(userId);
+    conversationId.value = conv.conversation_id;
+    const { data: record } = await getConversationRecord(conv.conversation_id);
+    messages.value = record.map((msg, i) => ({
+      id: `msg-${i}-${msg.created_at}`,
+      role: msg.role,
+      content: msg.content
+    }));
+  } catch (err) {
+    console.error('Error loading conversation:', err);
+  }
+};
+
 const toggleChatHistory = () => {
   showChatHistory.value = !showChatHistory.value;
 };
@@ -222,25 +248,40 @@ const createNewChat = () => {
   cartItems.value = [];
 };
 
-const sendMessage = () => {
-  if (!inputMessage.value.trim()) return;
-  
-  messages.value.push({
-    id: Date.now(),
-    role: 'user',
-    content: inputMessage.value
-  });
-  
+const sendMessage = async () => {
+  const text = inputMessage.value.trim();
+  if (!text || sending.value || !conversationId.value) return;
+
+  const userMsg = { id: `user-${Date.now()}`, role: 'user', content: text };
+  messages.value.push(userMsg);
   inputMessage.value = '';
-  
-  // Simulate AI response
-  setTimeout(() => {
-    messages.value.push({
-      id: Date.now(),
-      role: 'assistant',
-      content: "I'll help you find the best products for your needs. Let me search across multiple retailers..."
+  sending.value = true;
+
+  try {
+    const { data } = await sendChatMessage({
+      conversation_id: conversationId.value,
+      message: text
     });
-  }, 1000);
+    messages.value.push({
+      id: `ai-${data.ai_message_id}`,
+      role: 'assistant',
+      content: data.ai_message
+    });
+  } catch (err) {
+    console.error('Error sending message:', err);
+    messages.value.push({
+      id: `ai-err-${Date.now()}`,
+      role: 'assistant',
+      content: 'No pude enviar el mensaje. Intenta de nuevo.'
+    });
+  } finally {
+    sending.value = false;
+  }
+};
+
+const handleLogout = () => {
+  userStore.logout();
+  router.push('/');
 };
 
 const removeItem = (itemId) => {
@@ -248,11 +289,15 @@ const removeItem = (itemId) => {
 };
 
 const replaceItem = (itemId) => {
-  // TODO: Implement item replacement logic
   console.log('Replace item:', itemId);
 };
 
 const proceedToCheckout = () => {
   router.push('/payment');
 };
+
+onMounted(() => {
+  if (!userStore.user) return;
+  loadConversation();
+});
 </script>

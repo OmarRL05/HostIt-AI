@@ -19,6 +19,10 @@ const router = createRouter({
       component: LoginView,
     },
     {
+      path: '/login',
+      redirect: { name: 'login' },
+    },
+    {
       path: '/chat',
       name: 'chat',
       component: ChatView

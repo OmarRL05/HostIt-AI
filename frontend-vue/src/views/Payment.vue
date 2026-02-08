@@ -414,10 +414,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/user';
+import { getUserProfile, updateUserProfile } from '@/api/users';
+import { createMockOrder } from '@/api/orders';
 
 const router = useRouter();
+const userStore = useUserStore();
 
 // State
 const processing = ref(false);
@@ -456,28 +460,32 @@ const paymentInfo = ref({
 });
 
 const orderItems = ref([
-  {
-    id: 1,
-    name: 'Columbia Powder Keg II Jacket',
-    retailer: 'Amazon',
-    quantity: 1,
-    price: 189.99
-  },
-  {
-    id: 2,
-    name: 'The North Face Ski Pants',
-    retailer: 'REI',
-    quantity: 1,
-    price: 156.00
-  },
-  {
-    id: 3,
-    name: 'Smartwool Merino Wool Socks',
-    retailer: 'Backcountry',
-    quantity: 2,
-    price: 44.99
-  }
+  { id: 1, name: 'Columbia Powder Keg II Jacket', retailer: 'Amazon', quantity: 1, price: 189.99 },
+  { id: 2, name: 'The North Face Ski Pants', retailer: 'REI', quantity: 1, price: 156.00 },
+  { id: 3, name: 'Smartwool Merino Wool Socks', retailer: 'Backcountry', quantity: 2, price: 44.99 }
 ]);
+
+onMounted(async () => {
+  const userId = userStore.user?.id;
+  if (!userId) return;
+  try {
+    const { data } = await getUserProfile(userId);
+    contactInfo.value.email = data.email || '';
+    if (data.address && typeof data.address === 'string') {
+      shippingAddress.value.address = data.address;
+    }
+    if (data.full_name) {
+      const parts = data.full_name.trim().split(/\s+/);
+      shippingAddress.value.firstName = parts[0] || '';
+      shippingAddress.value.lastName = parts.slice(1).join(' ') || '';
+    }
+    if (data.payment_info && typeof data.payment_info === 'object') {
+      paymentInfo.value = { ...paymentInfo.value, ...data.payment_info };
+    }
+  } catch (err) {
+    console.error('Error loading profile:', err);
+  }
+});
 
 // Computed
 const subtotal = computed(() => {
@@ -520,20 +528,32 @@ const applyPromoCode = () => {
 };
 
 const placeOrder = async () => {
+  const userId = userStore.user?.id;
+  if (!userId) {
+    alert('Debes iniciar sesión para continuar.');
+    return;
+  }
   processing.value = true;
 
   try {
-    // TODO: Replace with actual API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    if (saveAddress.value || savePaymentMethod.value) {
+      const addressStr = [
+        shippingAddress.value.address,
+        shippingAddress.value.apartment,
+        [shippingAddress.value.city, shippingAddress.value.state, shippingAddress.value.zipCode].filter(Boolean).join(', ')
+      ].filter(Boolean).join(' ');
+      await updateUserProfile(userId, {
+        full_name: [shippingAddress.value.firstName, shippingAddress.value.lastName].filter(Boolean).join(' '),
+        address: addressStr,
+        payment_info: savePaymentMethod.value ? paymentInfo.value : undefined
+      });
+    }
 
-    // Simulate successful order
-    const orderId = 'ORD-' + Date.now();
-    
-    // Redirect to success page
-    router.push(`/orders/${orderId}?success=true`);
-  } catch (error) {
-    console.error('Order failed:', error);
-    alert('Payment failed. Please try again.');
+    const { data } = await createMockOrder(userId);
+    router.push(`/orders/${data.order_id}?success=true`);
+  } catch (err) {
+    console.error('Order failed:', err);
+    alert(err.response?.data?.error || 'Error al procesar el pedido. Intenta de nuevo.');
   } finally {
     processing.value = false;
   }

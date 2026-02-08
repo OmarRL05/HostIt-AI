@@ -178,8 +178,11 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { register } from '@/api/auth';
+import { useUserStore } from '@/stores/user';
 
 const router = useRouter();
+const userStore = useUserStore();
 
 // State
 const loading = ref(false);
@@ -231,37 +234,26 @@ const handleRegister = async () => {
   success.value = '';
 
   try {
-    // TODO: Replace with actual API call
-    const response = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        name: formData.value.name,
-        email: formData.value.email,
-        password: formData.value.password
-      })
+    const { data } = await register({
+      full_name: formData.value.name,
+      email: formData.value.email,
+      password: formData.value.password
     });
 
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.message || 'Registration failed');
-    }
+    userStore.setUser({
+      id: data.user_id,
+      email: data.user_email,
+      full_name: formData.value.name
+    });
 
-    const data = await response.json();
-    
-    success.value = 'Account created successfully! Redirecting...';
-    
-    // Store token
-    localStorage.setItem('token', data.token);
-    
-    // Redirect to chat after 2 seconds
+    success.value = 'Cuenta creada correctamente. Redirigiendo...';
+
     setTimeout(() => {
       router.push('/chat');
-    }, 2000);
+    }, 1500);
   } catch (err) {
-    error.value = err.message || 'An error occurred during registration';
+    const msg = err.response?.data?.error || err.response?.data?.message || err.message;
+    error.value = msg || 'Error al crear la cuenta';
   } finally {
     loading.value = false;
   }
